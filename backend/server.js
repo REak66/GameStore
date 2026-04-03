@@ -33,18 +33,6 @@ app.get("/api/health", (req, res) =>
   res.json({ status: "OK", timestamp: new Date() }),
 );
 
-// Diagnostic: exposes DB connection state — remove after confirming fix
-app.get("/api/db-status", (req, res) => {
-  const states = ["disconnected", "connected", "connecting", "disconnecting"];
-  const mongoose = require("mongoose");
-  res.json({
-    version: "v5",
-    readyState: mongoose.connection.readyState,
-    readyStateLabel: states[mongoose.connection.readyState] || "unknown",
-    host: mongoose.connection.host || null,
-  });
-});
-
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res
