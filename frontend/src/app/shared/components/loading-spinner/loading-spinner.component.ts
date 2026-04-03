@@ -22,7 +22,7 @@ import { Component } from '@angular/core';
         border: 4px solid var(--border, #e5e7eb);
         border-top-color: var(--accent, #4f6ef7);
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+        animation: spin 0.5s linear infinite;
       }
       @keyframes spin {
         to {

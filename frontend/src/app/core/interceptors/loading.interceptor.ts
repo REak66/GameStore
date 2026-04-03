@@ -3,7 +3,7 @@ import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpEvent } from '@angul
 import { finalize, delay, Observable } from 'rxjs';
 import { LoadingService } from '../services/loading.service';
 
-const MIN_SPINNER_DELAY_MS = 500;
+const MIN_SPINNER_DELAY_MS = 250;
 
 export const loadingInterceptor: HttpInterceptorFn = (
   req: HttpRequest<any>,
