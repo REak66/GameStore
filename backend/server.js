@@ -38,7 +38,7 @@ app.get("/api/db-status", (req, res) => {
   const states = ["disconnected", "connected", "connecting", "disconnecting"];
   const mongoose = require("mongoose");
   res.json({
-    version: "v4",
+    version: "v5",
     readyState: mongoose.connection.readyState,
     readyStateLabel: states[mongoose.connection.readyState] || "unknown",
     host: mongoose.connection.host || null,
