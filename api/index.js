@@ -4,26 +4,49 @@ const mongoose = require("mongoose");
 // Queries fail immediately if no connection instead of buffering for 10 s.
 mongoose.set("bufferCommands", false);
 
-let connectionPromise = null;
+const CONNECT_OPTS = {
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 30000,
+  connectTimeoutMS: 10000,
+};
 
-const connectDB = () => {
-  const state = mongoose.connection.readyState;
-  // 1 = connected
-  if (state === 1) return Promise.resolve();
-  // 2 = connecting — reuse in-flight promise so we don't open a second connection
-  if (state === 2 && connectionPromise) return connectionPromise;
-  // 0 = disconnected, 3 = disconnecting — always create a fresh connection
-  connectionPromise = mongoose
-    .connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 30000,
-      connectTimeoutMS: 10000,
-    })
-    .catch((err) => {
-      connectionPromise = null;
-      throw err;
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return;
+
+  // If currently connecting, wait for the connection event directly —
+  // do NOT rely solely on the mongoose.connect() promise which can resolve
+  // slightly before readyState reaches 1 in some edge cases.
+  const waitForReady = () =>
+    new Promise((resolve, reject) => {
+      // Already connected by the time we set up listeners
+      if (mongoose.connection.readyState === 1) return resolve();
+
+      const onConnected = () => {
+        mongoose.connection.removeListener("error", onError);
+        resolve();
+      };
+      const onError = (err) => {
+        mongoose.connection.removeListener("connected", onConnected);
+        reject(err);
+      };
+      mongoose.connection.once("connected", onConnected);
+      mongoose.connection.once("error", onError);
     });
-  return connectionPromise;
+
+  if (mongoose.connection.readyState !== 2) {
+    // Not yet connecting — kick off connect() and wait for 'connected' event
+    mongoose.connect(process.env.MONGODB_URI, CONNECT_OPTS).catch(() => {
+      // errors are surfaced via the 'error' event caught in waitForReady
+    });
+  }
+
+  await waitForReady();
+
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error(
+      `MongoDB not ready after connect (readyState=${mongoose.connection.readyState})`
+    );
+  }
 };
 
 // Load app once; module cache persists across warm invocations in the same instance.
