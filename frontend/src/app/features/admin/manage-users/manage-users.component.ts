@@ -839,6 +839,7 @@ import { AuthService } from '../../../core/services/auth.service';
           font-size: 1.25rem;
         }
       }
+      @media (max-width: 480px) {
         .modal-overlay {
           align-items: flex-end;
           padding: 0;
