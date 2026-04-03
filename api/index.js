@@ -1,7 +1,13 @@
 const mongoose = require("mongoose");
-const app = require("../backend/server");
 
+let app;
 let isConnected = false;
+
+try {
+  app = require("../backend/server");
+} catch (loadErr) {
+  app = (req, res) => res.status(500).json({ success: false, message: "Server load error: " + loadErr.message });
+}
 
 module.exports = async (req, res) => {
   if (!process.env.MONGODB_URI) {
