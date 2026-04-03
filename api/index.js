@@ -1,24 +1,25 @@
 const mongoose = require("mongoose");
 
-// Disable command buffering - fail immediately if not connected
-mongoose.set("bufferCommands", false);
-
 let connectionPromise = null;
 
 const connectDB = () => {
-  if (mongoose.connection.readyState === 1) return Promise.resolve();
-  if (!connectionPromise) {
-    connectionPromise = mongoose
-      .connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 25000,
-        socketTimeoutMS: 45000,
-        connectTimeoutMS: 25000,
-      })
-      .catch((err) => {
-        connectionPromise = null;
-        throw err;
-      });
-  }
+  const state = mongoose.connection.readyState;
+  // 1 = connected
+  if (state === 1) return Promise.resolve();
+  // 2 = connecting — reuse in-flight promise
+  if (state === 2 && connectionPromise) return connectionPromise;
+  // 0 = disconnected, 3 = disconnecting — reset and reconnect
+  connectionPromise = null;
+  connectionPromise = mongoose
+    .connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 25000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 25000,
+    })
+    .catch((err) => {
+      connectionPromise = null;
+      throw err;
+    });
   return connectionPromise;
 };
 
