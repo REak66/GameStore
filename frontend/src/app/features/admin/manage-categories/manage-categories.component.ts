@@ -62,6 +62,7 @@ import {
           [hasContent]="true"
           tip="Loading categories..."
         >
+          <div class="table-scroll">
           <table class="data-table">
             <thead>
               <tr>
@@ -98,6 +99,7 @@ import {
               </tr>
             </tbody>
           </table>
+          </div>
 
           <!-- Pagination -->
           <div class="pagination-bar" *ngIf="totalItems > 0">
@@ -237,9 +239,14 @@ import {
           transform: translateY(0) scale(1);
         }
       }
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
       .data-table {
         width: 100%;
         border-collapse: collapse;
+        min-width: 480px;
       }
       .data-table th {
         text-align: left;
@@ -560,10 +567,15 @@ import {
         }
         .btn-add {
           width: 100%;
+          text-align: center;
           justify-content: center;
         }
         .section-card {
-          padding: 16px;
+          padding: 16px 12px;
+        }
+        .data-table th,
+        .data-table td {
+          padding: 10px 12px;
         }
         .pagination-bar {
           flex-direction: column;
@@ -607,7 +619,17 @@ import {
           font-size: 1.1rem;
         }
         .section-card {
-          padding: 10px 8px;
+          padding: 10px 6px;
+        }
+        .data-table th,
+        .data-table td {
+          padding: 8px 10px;
+          font-size: 0.8rem;
+        }
+        .btn-edit,
+        .btn-delete {
+          width: 32px;
+          height: 32px;
         }
       }
     `,
@@ -681,7 +703,7 @@ export class ManageCategoriesComponent implements OnInit {
     private categoryService: CategoryService,
     private confirmService: ConfirmService,
     private notificationService: NotificationService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.load();
@@ -734,9 +756,9 @@ export class ManageCategoriesComponent implements OnInit {
         this.saving = false;
         this.notificationService.error(
           err.error?.message ||
-            (isEdit
-              ? 'Failed to update category'
-              : 'Failed to create category'),
+          (isEdit
+            ? 'Failed to update category'
+            : 'Failed to create category'),
         );
       },
     });

@@ -225,7 +225,7 @@ import { AuthService } from '../../../core/services/auth.service';
                           user.isActive ? 'fas fa-lock' : 'fas fa-lock-open'
                         "
                       ></i>
-                      {{ user.isActive ? 'Disable' : 'Enable' }}
+                      <span class="btn-label">{{ user.isActive ? 'Disable' : 'Enable' }}</span>
                     </button>
                     <button
                       class="btn-del"
@@ -470,6 +470,7 @@ import { AuthService } from '../../../core/services/auth.service';
       .filter-group {
         display: flex;
         gap: 6px;
+        flex-wrap: wrap;
       }
       .filter-btn {
         padding: 7px 15px;
@@ -528,6 +529,11 @@ import { AuthService } from '../../../core/services/auth.service';
         background: var(--bg-secondary);
       }
 
+      .td-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
       .td-user .av {
         display: inline-flex;
         align-items: center;
@@ -550,10 +556,8 @@ import { AuthService } from '../../../core/services/auth.service';
         object-fit: cover;
       }
       .td-user .uinfo {
-        display: inline-flex;
+        display: flex;
         flex-direction: column;
-        vertical-align: middle;
-        margin-left: 12px;
       }
       .uname {
         font-weight: 600;
@@ -785,6 +789,9 @@ import { AuthService } from '../../../core/services/auth.service';
           grid-template-columns: repeat(2, 1fr);
           gap: 10px;
         }
+        .stat-card {
+          padding: 12px 14px;
+        }
         .table-toolbar {
           flex-direction: column;
           align-items: stretch;
@@ -800,9 +807,6 @@ import { AuthService } from '../../../core/services/auth.service';
         .page-header h1 {
           font-size: 1.4rem;
         }
-        .section-card {
-          padding: 16px;
-        }
         .pagination-bar {
           flex-direction: column;
           align-items: center;
@@ -812,13 +816,29 @@ import { AuthService } from '../../../core/services/auth.service';
         .pagination-controls { order: 1; }
         .pagination-size { order: 3; }
       }
+      @media (max-width: 576px) {
+        .btn-label {
+          display: none;
+        }
+        .btn-toggle {
+          padding: 7px 10px;
+          margin-right: 6px;
+        }
+      }
       @media (max-width: 480px) {
         .stats-row {
           gap: 8px;
         }
+        .stat-card {
+          padding: 10px 12px;
+        }
+        .stat-value {
+          font-size: 1.4rem;
+        }
         .page-header h1 {
           font-size: 1.25rem;
         }
+      }
         .modal-overlay {
           align-items: flex-end;
           padding: 0;
@@ -911,7 +931,7 @@ export class ManageUsersComponent implements OnInit {
     private confirmService: ConfirmService,
     private notificationService: NotificationService,
     public authService: AuthService,
-  ) {}
+  ) { }
 
   getAvatarUrl(avatar?: string): string {
     if (!avatar) return '';
