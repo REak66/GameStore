@@ -8,7 +8,7 @@ import { User } from '../models';
 const STORAGE_KEY_TOKEN = 'token';
 const STORAGE_KEY_USER = 'user';
 const STORAGE_KEY_LOGIN_TIME = 'loginTime';
-const AUTO_LOGOUT_MS = 60 * 60 * 1000; // Auto sign-out
+const AUTO_LOGOUT_MS = 2 * 60 * 1000; // Auto sign-out
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
