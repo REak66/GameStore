@@ -7,7 +7,7 @@ const categorySchema = new mongoose.Schema(
     image: { type: String },
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true },
+  { timestamps: true, bufferCommands: false },
 );
 
 module.exports = mongoose.model("Category", categorySchema);

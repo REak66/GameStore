@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
     loginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date },
   },
-  { timestamps: true },
+  { timestamps: true, bufferCommands: false },
 );
 
 userSchema.pre("save", async function (next) {

@@ -40,7 +40,7 @@ const orderSchema = new mongoose.Schema(
 
     trackingNumber: String,
   },
-  { timestamps: true },
+  { timestamps: true, bufferCommands: false },
 );
 
 module.exports = mongoose.model("Order", orderSchema);

@@ -34,7 +34,7 @@ const productSchema = new mongoose.Schema(
     featured: { type: Boolean, default: false },
     downloadLink: { type: String, default: "" },
   },
-  { timestamps: true },
+  { timestamps: true, bufferCommands: false },
 );
 
 module.exports = mongoose.model("Product", productSchema);
