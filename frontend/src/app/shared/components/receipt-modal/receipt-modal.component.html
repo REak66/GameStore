@@ -1,0 +1,81 @@
+<div
+  #receiptContent
+  class="receipt-modal-content confirmation-card receipt-template"
+>
+  <div class="receipt-header">
+    <div class="receipt-row">
+      <div>
+        Receipt No.: <span>{{ getReceiptNo() }}</span>
+      </div>
+      <div>
+        Date: <span>{{ order?.createdAt | date: "mediumDate" }}</span>
+      </div>
+    </div>
+    <span class="bold">PAYMENT RECEIPT</span>
+  </div>
+  <div class="receipt-details stacked-details">
+    <div class="details-title">CUSTOMER DETAILS</div>
+    <div>
+      Name: <span>{{ getUserName() }}</span>
+    </div>
+    <div>
+      Email: <span>{{ getUserEmail() }}</span>
+    </div>
+    <div class="details-title">COMPANY DETAILS</div>
+    <div>Name: <span>GameStore</span></div>
+    <div>Email: <span>support&#64;gamestore.com</span></div>
+  </div>
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>DESCRIPTION</th>
+        <th>PRICE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of order?.orderItems">
+        <td>{{ getProductName(item) }}</td>
+        <td>${{ item.price | number: "1.2-2" }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="totals-section">
+    <div class="totals-row">
+      <span>SUBTOTAL</span
+      ><span>${{ order?.itemsPrice | number: "1.2-2" }}</span>
+    </div>
+    <div class="totals-row">
+      <span>TAXABLE AMOUNT</span
+      ><span>${{ order?.taxPrice | number: "1.2-2" }}</span>
+    </div>
+    <div class="totals-row grand-total">
+      <span>GRAND TOTAL</span
+      ><span>${{ order?.totalPrice | number: "1.2-2" }}</span>
+    </div>
+  </div>
+  <div class="payment-section">
+    <div
+      class="payment-method"
+      style="display: flex; flex-direction: column; align-items: flex-start"
+    >
+      <div>
+        <span>Payment Method:</span>
+        <span class="bold">{{ order?.paymentMethod | titlecase }}</span>
+      </div>
+      <div style="margin-top: 2px">
+        <span>Amount Paid:</span>
+        <span class="bold"
+          >${{
+            order?.isPaid ? (order?.totalPrice | number: "1.2-2") : "0.00"
+          }}</span
+        >
+      </div>
+    </div>
+  </div>
+  <div class="receipt-footer">
+    <div class="thank-you">Thank you!</div>
+    <button (click)="downloadVectorPDF()" class="btn-primary">
+      Download Receipt (PDF)
+    </button>
+  </div>
+</div>

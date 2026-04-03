@@ -1,0 +1,18 @@
+<a
+  routerLink="/support"
+  class="fab-support"
+  title="Support"
+  aria-label="Go to Support"
+>
+  <i class="fas fa-headset"></i>
+</a>
+
+<button
+  class="scroll-to-bottom"
+  (click)="scroll()"
+  [title]="atBottom ? 'Scroll to top' : 'Scroll to bottom'"
+  [attr.aria-label]="atBottom ? 'Scroll to top' : 'Scroll to bottom'"
+>
+  <i *ngIf="!atBottom" class="fas fa-chevron-down"></i>
+  <i *ngIf="atBottom" class="fas fa-chevron-up"></i>
+</button>
