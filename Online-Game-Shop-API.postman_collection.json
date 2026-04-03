@@ -2,13 +2,13 @@
   "info": {
     "_postman_id": "online-game-shop-api",
     "name": "Online Game Shopping System — Production",
-    "description": "Full API collection for the Online Game Shopping System.\n\nVariables:\n- `baseUrl` — set to your production domain (e.g. https://your-app.vercel.app)\n- `token` — JWT bearer token (auto-set after login)\n- `adminToken` — Admin JWT bearer token (auto-set after admin login)",
+    "description": "Full API collection for the Online Game Shopping System.\n\nVariables:\n- `baseUrl` — set to your production domain (e.g. https://game-store-psi-lac.vercel.app)\n- `token` — JWT bearer token (auto-set after login)\n- `adminToken` — Admin JWT bearer token (auto-set after admin login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://your-app.vercel.app",
+      "value": "https://game-store-psi-lac.vercel.app",
       "type": "string"
     },
     {
