@@ -1,4 +1,15 @@
-const mongoose = require("mongoose");
+const path = require("path");
+const { createRequire } = require("module");
+
+// backend/server.js and all its models resolve "mongoose" from the backend
+// directory. We must use that SAME singleton — otherwise connectDB() and the
+// model queries operate on two completely different Mongoose instances (one
+// connected, one not), causing the "buffering timed out / bufferCommands=false"
+// errors. createRequire lets us resolve a module as if we were inside server.js.
+const backendRequire = createRequire(
+  path.resolve(__dirname, "../backend/server.js")
+);
+const mongoose = backendRequire("mongoose");
 
 // Must be set before any models are loaded so schemas inherit this setting.
 mongoose.set("bufferCommands", false);
