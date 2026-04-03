@@ -32,7 +32,7 @@ const getClientInfo = (req) => {
   };
 };
 
-const writeAuthLog = (data) => AuthLog.create(data);
+const writeAuthLog = (data) => { AuthLog.create(data).catch(() => {}); };
 
 exports.register = async (req, res) => {
   try {
