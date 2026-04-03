@@ -65,8 +65,17 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
             placeholder="All Status"
             [clearable]="true"
           ></app-select>
-          <input type="date" [(ngModel)]="filters.from" name="from" />
-          <input type="date" [(ngModel)]="filters.to" name="to" />
+          <div class="date-range-group">
+            <div class="date-field">
+              <label class="date-label">From</label>
+              <input type="date" [(ngModel)]="filters.from" name="from" />
+            </div>
+            <span class="date-sep">—</span>
+            <div class="date-field">
+              <label class="date-label">To</label>
+              <input type="date" [(ngModel)]="filters.to" name="to" />
+            </div>
+          </div>
           <div class="btn-row">
             <button type="submit">Filter</button>
             <button type="button" (click)="resetFilters()">Reset</button>
@@ -298,6 +307,36 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         align-items: center;
       }
 
+      /* ── Date range group ── */
+      .date-range-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .date-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .date-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding-left: 2px;
+      }
+      .date-range-group input[type='date'] {
+        width: 140px;
+      }
+      .date-sep {
+        color: var(--text-muted);
+        font-size: 1rem;
+        margin-top: 18px;
+        flex-shrink: 0;
+      }
+
       .table-wrapper {
         overflow-x: auto;
         border-radius: 12px;
@@ -457,7 +496,7 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         .filter-form {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          align-items: center;
+          align-items: start;
         }
         .filter-form input[name='search'] {
           grid-column: 1 / -1;
@@ -465,9 +504,22 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         .filter-form app-select {
           width: 100%;
         }
+        .date-range-group {
+          grid-column: 1 / -1;
+          width: 100%;
+          justify-content: flex-start;
+        }
+        .date-range-group input[type='date'] {
+          flex: 1;
+          width: auto;
+          min-width: 0;
+        }
         .filter-form button[type='submit'],
         .filter-form button[type='button'] {
           width: 100%;
+        }
+        .btn-row {
+          grid-column: 1 / -1;
         }
       }
 
@@ -521,13 +573,29 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         .filter-form app-select {
           width: 100%;
         }
+        .date-range-group {
+          grid-column: 1;
+          flex-direction: row;
+          width: 100%;
+        }
+        .date-range-group input[type='date'] {
+          flex: 1;
+          width: auto;
+          min-width: 0;
+          font-size: 0.82rem;
+          padding: 8px 6px;
+        }
         .filter-form .btn-row {
           display: flex;
           gap: 10px;
+          grid-column: 1;
         }
         .filter-form button[type='submit'],
         .filter-form button[type='button'] {
           flex: 1;
+        }
+        .btn-row {
+          grid-column: 1;
         }
       }
 

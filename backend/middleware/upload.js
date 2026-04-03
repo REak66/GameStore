@@ -5,19 +5,22 @@ const fs = require("fs");
 
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp"]);
 
-// Use /tmp in serverless environments (Vercel), local uploads/ otherwise
-const uploadDir = process.env.VERCEL ? "/tmp/uploads" : path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`);
-  },
-});
+// On Vercel (serverless), use memory storage so images are held in req.file.buffer.
+// Controllers convert the buffer to a base64 data URL and store it in MongoDB.
+// Locally, persist files to disk as usual.
+const storage = process.env.VERCEL
+  ? multer.memoryStorage()
+  : (() => {
+      const uploadDir = path.join(process.cwd(), "uploads");
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      return multer.diskStorage({
+        destination: (req, file, cb) => cb(null, uploadDir),
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname).toLowerCase();
+          cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`);
+        },
+      });
+    })();
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();

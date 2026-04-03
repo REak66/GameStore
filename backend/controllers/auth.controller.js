@@ -251,7 +251,11 @@ exports.uploadAvatar = async (req, res) => {
         .status(400)
         .json({ success: false, message: "No image file provided" });
     }
-    const avatarUrl = `/uploads/${req.file.filename}`;
+    // On Vercel, multer uses memoryStorage so req.file.buffer holds the bytes.
+    // Store as a base64 data URL directly in MongoDB (no ephemeral /tmp disk needed).
+    const avatarUrl = req.file.buffer
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : `/uploads/${req.file.filename}`;
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { avatar: avatarUrl },

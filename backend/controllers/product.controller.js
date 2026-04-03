@@ -92,10 +92,17 @@ exports.getProduct = async (req, res) => {
   }
 };
 
+const buildImageValue = (file) => {
+  if (!file) return undefined;
+  // On Vercel, multer uses memoryStorage – convert buffer to base64 data URL.
+  if (file.buffer) return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  return `/uploads/${file.filename}`;
+};
+
 exports.createProduct = async (req, res) => {
   try {
     const productData = { ...req.body };
-    if (req.file) productData.image = `/uploads/${req.file.filename}`;
+    if (req.file) productData.image = buildImageValue(req.file);
     // Ensure downloadLink is set if provided
     if (req.body.downloadLink) productData.downloadLink = req.body.downloadLink;
     const product = await Product.create(productData);
@@ -108,7 +115,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const productData = { ...req.body };
-    if (req.file) productData.image = `/uploads/${req.file.filename}`;
+    if (req.file) productData.image = buildImageValue(req.file);
     if (req.body.downloadLink !== undefined)
       productData.downloadLink = req.body.downloadLink;
     const product = await Product.findByIdAndUpdate(
