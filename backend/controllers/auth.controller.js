@@ -3,6 +3,7 @@ const AuthLog = require("../models/AuthLog");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const UAParser = require("ua-parser-js");
+const { sendPasswordResetEmail, sendWelcomeEmail } = require("../services/email.service");
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -50,6 +51,10 @@ exports.register = async (req, res) => {
     }
     const user = await User.create({ name, email, password });
     const token = generateToken(user._id);
+    // Send welcome email (non-blocking – failure should not break registration)
+    sendWelcomeEmail(user.email, user.name).catch((err) =>
+      console.error('Welcome email failed:', err.message),
+    );
     res.status(201).json({
       success: true,
       token,
@@ -211,7 +216,7 @@ exports.forgotPassword = async (req, res) => {
       .digest("hex");
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save();
-    // In production, send resetToken via email to user.email instead of returning it in the response
+    await sendPasswordResetEmail(user.email, resetToken);
     res.json({ success: true, message: "Password reset email sent" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

@@ -149,6 +149,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'auth/reset-password/:token',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
+  {
     path: 'support',
     loadComponent: () =>
       import('./features/support/support.component').then(
