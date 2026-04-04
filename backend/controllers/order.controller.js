@@ -3,6 +3,7 @@ const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const { sendPaymentSuccessAlert } = require("../services/telegram.service");
+const { streamDriveFile } = require("../services/drive.service");
 
 const TAX_RATE = 0.1;
 
@@ -187,6 +188,51 @@ exports.deleteOrder = async (req, res) => {
     res.json({ success: true, message: "Order deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/orders/:id/download/:productId
+ * Streams the purchased game file from Google Drive.
+ * Requires: authenticated user who owns the order AND order is paid.
+ * The product's downloadLink field must contain a Google Drive File ID.
+ */
+exports.downloadOrderItem = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order)
+      return res.status(404).json({ success: false, message: "Order not found" });
+
+    // Ownership check
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    // Must be a paid order
+    if (!order.isPaid) {
+      return res.status(403).json({ success: false, message: "Order not paid" });
+    }
+
+    // Find the specific order item
+    const item = order.orderItems.find(
+      (i) => i.product.toString() === req.params.productId,
+    );
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Product not in this order" });
+    }
+
+    // The downloadLink field stores the Google Drive File ID
+    const fileId = item.downloadLink;
+    if (!fileId) {
+      return res.status(404).json({ success: false, message: "No download available for this item" });
+    }
+
+    // Stream the file through our server (keeps the file ID hidden from the client)
+    await streamDriveFile(fileId, res);
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: err.message });
+    }
   }
 };
 

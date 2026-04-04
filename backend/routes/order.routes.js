@@ -9,6 +9,7 @@ const {
   updateOrderStatus,
   payOrder,
   deleteOrder,
+  downloadOrderItem,
 } = require("../controllers/order.controller");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -19,6 +20,7 @@ router.get("/my-orders", getMyOrders);
 router.get("/:id", getOrder);
 router.put("/:id/cancel", cancelOrder);
 router.put("/:id/pay", payOrder);
+router.get("/:id/download/:productId", downloadOrderItem);
 router.put("/:id/status", authorize("admin"), updateOrderStatus);
 router.delete("/:id", authorize("admin"), deleteOrder);
 
