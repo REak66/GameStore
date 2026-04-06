@@ -24,15 +24,18 @@ const connectDB = async () => {
   const state = mongoose.connection.readyState;
   if (state === 1) return; // already connected
 
-  // In Mongoose 8 a connection that was previously established and then
-  // dropped (by Atlas idle timeout) must be explicitly closed before
-  // connect() will open a fresh one. Without this, connect() resolves
-  // the promise immediately but leaves readyState at 0.
-  if (state !== 0) {
-    // state 2 = connecting, 3 = disconnecting — wait or close it first
-    try { await mongoose.disconnect(); } catch (_) { /* ignore */ }
-  } else if (mongoose.connection.client) {
-    // State 0 but a previous MongoClient exists (stale) — close it
+  if (state === 2) {
+    // Another invocation is already connecting — wait for it instead of
+    // disconnecting it (which causes "readyState=2" errors).
+    await new Promise((resolve, reject) => {
+      mongoose.connection.once("connected", resolve);
+      mongoose.connection.once("error", reject);
+    });
+    return;
+  }
+
+  // state 3 (disconnecting) or state 0 with a stale client — close first.
+  if (state !== 0 || mongoose.connection.client) {
     try { await mongoose.disconnect(); } catch (_) { /* ignore */ }
   }
 
