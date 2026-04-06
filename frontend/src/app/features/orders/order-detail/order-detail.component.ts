@@ -516,7 +516,21 @@ export class OrderDetailComponent implements OnInit {
       },
       error: (err) => {
         this.downloadingItemId = null;
-        this.msgService.error(err.error?.message || 'Download failed');
+        // When responseType is 'blob', Angular wraps the error body as a Blob —
+        // we must read it as text to get the JSON message.
+        const raw: Blob | null = err.error;
+        if (raw instanceof Blob) {
+          raw.text().then((text) => {
+            try {
+              const json = JSON.parse(text);
+              this.msgService.error(json.message || 'Download failed');
+            } catch {
+              this.msgService.error('Download failed');
+            }
+          });
+        } else {
+          this.msgService.error(err.error?.message || 'Download failed');
+        }
       },
     });
   }

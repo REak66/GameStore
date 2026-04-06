@@ -2,6 +2,16 @@ const { google } = require("googleapis");
 
 const SCOPES = ["https://www.googleapis.com/auth/drive.readonly"];
 
+/**
+ * Accept either a bare file ID or a full Google Drive URL and return just the ID.
+ * e.g. "https://drive.google.com/file/d/FILE_ID/view?usp=drive_link" → "FILE_ID"
+ */
+function extractFileId(fileIdOrUrl) {
+  if (!fileIdOrUrl) return fileIdOrUrl;
+  const match = fileIdOrUrl.match(/\/file\/d\/([^/?#]+)/);
+  return match ? match[1] : fileIdOrUrl;
+}
+
 function getDriveClient() {
   const auth = new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -16,7 +26,8 @@ function getDriveClient() {
  * @param {string} fileId - The Google Drive file ID stored on the product.
  * @returns {Promise<string>} A signed URL valid for DRIVE_LINK_EXPIRY_SECONDS.
  */
-async function generateSignedDownloadUrl(fileId) {
+async function generateSignedDownloadUrl(fileIdOrUrl) {
+  const fileId = extractFileId(fileIdOrUrl);
   const drive = getDriveClient();
   const expirySeconds = parseInt(process.env.DRIVE_LINK_EXPIRY_SECONDS) || 3600;
 
@@ -47,7 +58,8 @@ async function generateSignedDownloadUrl(fileId) {
  * @param {string} fileId
  * @param {import('express').Response} res
  */
-async function streamDriveFile(fileId, res) {
+async function streamDriveFile(fileIdOrUrl, res) {
+  const fileId = extractFileId(fileIdOrUrl);
   const drive = getDriveClient();
 
   // Get metadata first so we can set Content-Type and Content-Disposition

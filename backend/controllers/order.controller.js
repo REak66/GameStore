@@ -209,7 +209,7 @@ exports.downloadOrderItem = async (req, res) => {
     }
 
     // Must be a paid order
-    if (!order.isPaid) {
+    if (!order.isPaid && order.status !== "paid") {
       return res.status(403).json({ success: false, message: "Order not paid" });
     }
 
