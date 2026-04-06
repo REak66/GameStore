@@ -12,50 +12,62 @@ function extractFileId(fileIdOrUrl) {
   return match ? match[1] : fileIdOrUrl;
 }
 
-function getDriveClient() {
-  const auth = new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+/**
+ * Robustly parse the private key from the environment variable.
+ * Handles: surrounding quotes added by Vercel/env stores, escaped \\n sequences,
+ * Windows CRLF line endings, and extra leading/trailing whitespace — all of which
+ * cause the OpenSSL 3 "DECODER routines::unsupported" error on Node.js 18+.
+ */
+function getPrivateKey() {
+  let key = process.env.GOOGLE_PRIVATE_KEY || "";
+  // Strip surrounding double-quotes that some env var UIs wrap around values
+  if (key.startsWith('"') && key.endsWith('"')) {
+    key = key.slice(1, -1);
+  }
+  // Convert escaped \n sequences (stored literally in some env stores) to real newlines
+  key = key.replace(/\\n/g, "\n");
+  // Normalize Windows CRLF → LF
+  key = key.replace(/\r\n?/g, "\n");
+  return key.trim();
+}
+
+function getAuth() {
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      private_key: getPrivateKey(),
+    },
     scopes: SCOPES,
   });
-  return google.drive({ version: "v3", auth });
+}
+
+function getDriveClient() {
+  return google.drive({ version: "v3", auth: getAuth() });
 }
 
 /**
  * Generate a short-lived signed download URL for a Google Drive file.
- * @param {string} fileId - The Google Drive file ID stored on the product.
- * @returns {Promise<string>} A signed URL valid for DRIVE_LINK_EXPIRY_SECONDS.
+ * @param {string} fileIdOrUrl - The Google Drive file ID or view URL.
+ * @returns {Promise<{url: string, expiresIn: number}>}
  */
 async function generateSignedDownloadUrl(fileIdOrUrl) {
   const fileId = extractFileId(fileIdOrUrl);
-  const drive = getDriveClient();
   const expirySeconds = parseInt(process.env.DRIVE_LINK_EXPIRY_SECONDS) || 3600;
 
-  // Get file metadata to verify it exists and is accessible
-  await drive.files.get({ fileId, fields: "id,name" });
+  const auth = getAuth();
+  const client = await auth.getClient();
+  const { token } = await client.getAccessToken();
 
-  // Build a short-lived signed URL via the Drive export/download endpoint
-  const auth = new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    scopes: SCOPES,
-  });
-
-  await auth.authorize();
-  const token = await auth.getAccessToken();
-
-  // The signed URL embeds the access token; it is valid until the token expires
   const signedUrl =
     `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media` +
-    `&access_token=${token.token}`;
+    `&access_token=${token}`;
 
   return { url: signedUrl, expiresIn: expirySeconds };
 }
 
 /**
  * Stream a Google Drive file directly through the Express response.
- * Use this as an alternative to signed URLs to hide the file ID entirely.
- * @param {string} fileId
+ * @param {string} fileIdOrUrl
  * @param {import('express').Response} res
  */
 async function streamDriveFile(fileIdOrUrl, res) {
