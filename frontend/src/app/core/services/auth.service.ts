@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, filter, take, map, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { User } from '../models';
 
 const STORAGE_KEY_TOKEN = 'token';
-const STORAGE_KEY_USER = 'user';
 const STORAGE_KEY_LOGIN_TIME = 'loginTime';
 const AUTO_LOGOUT_MS = 60 * 60 * 1000; // Auto sign-out
 
@@ -16,16 +15,28 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
   private tokenExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+  private initializedSubject = new BehaviorSubject<boolean>(false);
+  isInitialized$ = this.initializedSubject.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {
-    const stored = localStorage.getItem(STORAGE_KEY_USER);
-    if (stored) {
-      try {
-        this.currentUserSubject.next(JSON.parse(stored));
-        this.scheduleAutoLogout();
-      } catch {
-        localStorage.removeItem(STORAGE_KEY_USER);
-      }
+    if (localStorage.getItem(STORAGE_KEY_TOKEN)) {
+      this.getProfile().subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            this.currentUserSubject.next(res.user);
+            this.scheduleAutoLogout();
+          } else {
+            this.clearAuth();
+          }
+          this.initializedSubject.next(true);
+        },
+        error: () => {
+          this.clearAuth();
+          this.initializedSubject.next(true);
+        },
+      });
+    } else {
+      this.initializedSubject.next(true);
     }
   }
 
@@ -70,7 +81,6 @@ export class AuthService {
   clearAuth(): void {
     this.clearAutoLogoutTimer();
     localStorage.removeItem(STORAGE_KEY_TOKEN);
-    localStorage.removeItem(STORAGE_KEY_USER);
     localStorage.removeItem(STORAGE_KEY_LOGIN_TIME);
     this.currentUserSubject.next(null);
     this.router.navigate(['/auth/login']);
@@ -104,7 +114,6 @@ export class AuthService {
       tap((res: any) => {
         if (res.success) {
           const updated = { ...this.currentUser, ...res.user };
-          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
           this.currentUserSubject.next(updated);
         }
       }),
@@ -125,7 +134,6 @@ export class AuthService {
       tap((res: any) => {
         if (res.success) {
           const updated = { ...this.currentUser, avatar: res.avatar };
-          localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
           this.currentUserSubject.next(updated as User);
         }
       }),
@@ -144,9 +152,9 @@ export class AuthService {
 
   private setAuth(res: any): void {
     localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
-    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(res.user));
     localStorage.setItem(STORAGE_KEY_LOGIN_TIME, String(Date.now()));
     this.currentUserSubject.next(res.user);
+    this.initializedSubject.next(true);
     this.scheduleAutoLogout();
   }
 }
