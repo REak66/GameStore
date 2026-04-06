@@ -56,17 +56,17 @@ import { environment } from '../../../../environments/environment';
                     \${{ item.price | number: '1.2-2' }}
                   </p>
                   <!-- Download button: show if paid and downloadLink exists -->
-                  <a
+                  <button
                     *ngIf="
-                      order.status === 'paid' && hasDownloadLink(item.product)
+                      order.status === 'paid' && hasDownloadLink(item)
                     "
-                    [href]="getDownloadLink(item.product)"
-                    target="_blank"
-                    rel="noopener"
+                    (click)="downloadItem(item)"
+                    [disabled]="downloadingItemId === getProductId(item)"
                     class="btn-download"
                   >
-                    <i class="fas fa-download"></i> Download
-                  </a>
+                    <i class="fas fa-download"></i>
+                    {{ downloadingItemId === getProductId(item) ? 'Downloading…' : 'Download' }}
+                  </button>
                 </div>
                 <span class="item-total"
                   >\${{ item.price | number: '1.2-2' }}</span
@@ -483,19 +483,42 @@ export class OrderDetailComponent implements OnInit {
   order: Order | null = null;
   loading = true;
   cancelling = false;
+  downloadingItemId: string | null = null;
   apiUrl = environment.apiUrl;
 
-  hasDownloadLink(product: any): boolean {
-    return (
-      product &&
-      typeof product === 'object' &&
-      'downloadLink' in product &&
-      !!product.downloadLink
-    );
+  getProductId(item: any): string {
+    if (item.product && typeof item.product === 'object') {
+      return item.product._id;
+    }
+    return item.product as string;
   }
 
-  getDownloadLink(product: any): string | null {
-    return this.hasDownloadLink(product) ? product.downloadLink : null;
+  hasDownloadLink(item: any): boolean {
+    // Check the order-item's own downloadLink (file ID stored at purchase time)
+    return !!item?.downloadLink;
+  }
+
+  downloadItem(item: any): void {
+    if (!this.order) return;
+    const productId = this.getProductId(item);
+    if (this.downloadingItemId === productId) return;
+
+    this.downloadingItemId = productId;
+    this.orderService.downloadOrderItem(this.order._id, productId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = item.name || 'download';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.downloadingItemId = null;
+      },
+      error: (err) => {
+        this.downloadingItemId = null;
+        this.msgService.error(err.error?.message || 'Download failed');
+      },
+    });
   }
 
   downloadReceiptPDF() {
@@ -652,7 +675,7 @@ export class OrderDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private orderService: OrderService,
     private msgService: NotificationService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.route.params.subscribe((params) => {

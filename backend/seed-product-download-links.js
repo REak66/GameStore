@@ -6,9 +6,8 @@ const Product = require("./models/Product");
 const MONGO_URI =
   process.env.MONGODB_URI || "mongodb://localhost:27017/shopping_db";
 
-// Google Drive download link
-const DOWNLOAD_LINK =
-  "https://drive.google.com/file/d/17cgi9STnkhmKnyWOSiCbjzD-X09VhRYA/view?usp=drive_link";
+// Google Drive file ID (not the view URL — the backend streams via service account)
+const DOWNLOAD_LINK = "17cgi9STnkhmKnyWOSiCbjzD-X09VhRYA";
 
 async function seedProductDownloadLinks() {
   try {

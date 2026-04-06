@@ -46,4 +46,10 @@ export class OrderService {
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  downloadOrderItem(orderId: string, productId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${orderId}/download/${productId}`, {
+      responseType: 'blob',
+    });
+  }
 }
