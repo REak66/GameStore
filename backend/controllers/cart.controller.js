@@ -38,7 +38,7 @@ exports.addToCart = async (req, res) => {
     // Prevent adding a product the user already purchased
     const alreadyOwned = await Order.exists({
       user: req.user._id,
-      \"orderItems.product\": productId,
+      "orderItems.product": productId,
     });
     if (alreadyOwned) {
       return res.status(400).json({ success: false, message: "You already own this product" });
