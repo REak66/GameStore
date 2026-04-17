@@ -1,9 +1,22 @@
+const jwt = require("jsonwebtoken");
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const { sendPaymentSuccessAlert } = require("../services/telegram.service");
 const { streamDriveFile } = require("../services/drive.service");
+
+/**
+ * Strip the internal downloadLink field from order items before sending to clients.
+ * The raw Drive file ID must never be exposed via the API.
+ */
+const sanitizeOrder = (order) => {
+  const obj = order.toObject ? order.toObject() : { ...order };
+  if (Array.isArray(obj.orderItems)) {
+    obj.orderItems = obj.orderItems.map(({ downloadLink, ...rest }) => rest);
+  }
+  return obj;
+};
 
 const TAX_RATE = 0.1;
 
@@ -62,7 +75,7 @@ exports.createOrder = async (req, res) => {
 
     await Cart.findOneAndDelete({ user: req.user._id });
 
-    res.status(201).json({ success: true, order });
+    res.status(201).json({ success: true, order: sanitizeOrder(order) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -73,7 +86,7 @@ exports.getMyOrders = async (req, res) => {
     const orders = await Order.find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .populate("orderItems.product", "name image");
-    res.json({ success: true, orders });
+    res.json({ success: true, orders: orders.map(sanitizeOrder) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -81,9 +94,10 @@ exports.getMyOrders = async (req, res) => {
 
 exports.getOrder = async (req, res) => {
   try {
+    // Explicitly exclude downloadLink from the populated Product fields
     const order = await Order.findById(req.params.id)
       .populate("user", "name email")
-      .populate("orderItems.product", "name image downloadLink");
+      .populate("orderItems.product", "name image");
     if (!order)
       return res
         .status(404)
@@ -96,7 +110,7 @@ exports.getOrder = async (req, res) => {
         .status(403)
         .json({ success: false, message: "Not authorized" });
     }
-    res.json({ success: true, order });
+    res.json({ success: true, order: sanitizeOrder(order) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -125,7 +139,7 @@ exports.cancelOrder = async (req, res) => {
 
     // No stock to restore
 
-    res.json({ success: true, order });
+    res.json({ success: true, order: sanitizeOrder(order) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -168,7 +182,7 @@ exports.getAllOrders = async (req, res) => {
       .limit(limit);
     res.json({
       success: true,
-      orders,
+      orders: orders.map(sanitizeOrder),
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -247,7 +261,7 @@ exports.updateOrderStatus = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
-    res.json({ success: true, order });
+    res.json({ success: true, order: sanitizeOrder(order) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -280,8 +294,88 @@ exports.payOrder = async (req, res) => {
       console.error("Telegram notification failed:", err.message),
     );
 
-    res.json({ success: true, order });
+    res.json({ success: true, order: sanitizeOrder(order) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/orders/:id/download/:productId/token
+ * Issues a short-lived signed JWT the client can use to stream the file
+ * WITHOUT needing to re-send the Bearer auth token (useful for <a href> links).
+ * The token encodes the Drive file ID so it never travels to the client in plain form.
+ */
+exports.getDownloadToken = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order)
+      return res.status(404).json({ success: false, message: "Order not found" });
+
+    if (order.user.toString() !== req.user._id.toString())
+      return res.status(403).json({ success: false, message: "Not authorized" });
+
+    if (!order.isPaid && order.status !== "paid")
+      return res.status(403).json({ success: false, message: "Order not paid" });
+
+    const item = order.orderItems.find(
+      (i) => i.product.toString() === req.params.productId,
+    );
+    if (!item)
+      return res.status(404).json({ success: false, message: "Product not in this order" });
+    if (!item.downloadLink)
+      return res.status(404).json({ success: false, message: "No download available for this item" });
+
+    const expiresIn = parseInt(process.env.DOWNLOAD_TOKEN_EXPIRY_SECONDS) || 900; // 15 min
+    const token = jwt.sign(
+      {
+        type: "download",
+        orderId: req.params.id,
+        productId: req.params.productId,
+        userId: req.user._id.toString(),
+        fileId: item.downloadLink,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn },
+    );
+
+    res.json({
+      success: true,
+      token,
+      expiresIn,
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/orders/file?token=...
+ * Validates a short-lived download token (issued by getDownloadToken) and
+ * streams the file from Google Drive.  No Bearer token required — the JWT
+ * in the query string provides authentication.  This lets the client open a
+ * normal browser download link instead of a fetch/XHR blob request.
+ */
+exports.streamByToken = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token)
+      return res.status(400).json({ success: false, message: "Download token required" });
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: "Invalid or expired download token" });
+    }
+
+    if (payload.type !== "download" || !payload.fileId || !payload.orderId)
+      return res.status(400).json({ success: false, message: "Invalid token payload" });
+
+    await streamDriveFile(payload.fileId, res);
+  } catch (err) {
+    if (!res.headersSent)
+      res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -190,7 +190,7 @@ export class ModalComponent implements OnInit, OnDestroy {
     this.sub = this.modalService.state$.subscribe((s) => (this.state = s));
   }
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    this.sub?.unsubscribe();
   }
 
   close() {

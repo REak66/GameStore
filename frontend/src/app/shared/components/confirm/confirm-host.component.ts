@@ -187,13 +187,13 @@ export class ConfirmHostComponent implements OnInit, OnDestroy {
   state!: ConfirmState;
   private sub!: Subscription;
 
-  constructor(private confirmService: ConfirmService) {}
+  constructor(private confirmService: ConfirmService) { }
 
   ngOnInit() {
     this.sub = this.confirmService.state$.subscribe((s) => (this.state = s));
   }
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    this.sub?.unsubscribe();
   }
 
   answer(v: boolean) {

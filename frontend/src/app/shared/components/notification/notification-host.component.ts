@@ -265,7 +265,7 @@ export class NotificationHostComponent implements OnInit, OnDestroy {
     this.sub = this.notifService.items$.subscribe((i) => (this.items = i));
   }
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    this.sub?.unsubscribe();
   }
 
   dismiss(id: number) {

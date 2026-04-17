@@ -158,7 +158,7 @@ export class MessageHostComponent implements OnInit, OnDestroy {
     this.sub = this.msgService.messages$.subscribe((m) => (this.messages = m));
   }
   ngOnDestroy() {
-    this.sub.unsubscribe();
+    this.sub?.unsubscribe();
   }
 
   dismiss(id: number) {

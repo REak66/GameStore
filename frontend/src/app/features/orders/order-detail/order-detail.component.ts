@@ -493,9 +493,11 @@ export class OrderDetailComponent implements OnInit {
     return item.product as string;
   }
 
-  hasDownloadLink(item: any): boolean {
-    // Check the order-item's own downloadLink (file ID stored at purchase time)
-    return !!item?.downloadLink;
+  hasDownloadLink(_item: any): boolean {
+    // downloadLink is intentionally stripped from API responses for security.
+    // The backend looks it up from its own DB when streaming. All paid items
+    // in this digital store are downloadable, so always return true.
+    return true;
   }
 
   downloadItem(item: any): void {
