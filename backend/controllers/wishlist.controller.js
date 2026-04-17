@@ -5,7 +5,7 @@ exports.getWishlist = async (req, res) => {
     let wishlist = await Wishlist.findOne({ user: req.user._id }).populate(
       "products",
       "name image price rating",
-    );
+    ).lean();
     if (!wishlist) {
       return res.json({ success: true, wishlist: { products: [] } });
     }

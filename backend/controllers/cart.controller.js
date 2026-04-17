@@ -13,7 +13,7 @@ exports.getCart = async (req, res) => {
     let cart = await Cart.findOne({ user: req.user._id }).populate(
       "items.product",
       CART_POPULATE_FIELDS,
-    );
+    ).lean();
 
     // Return a default empty cart if none is found instead of a 404 error
     if (!cart) {
@@ -36,10 +36,10 @@ exports.addToCart = async (req, res) => {
         .json({ success: false, message: "Product not found" });
 
     // Prevent adding a product the user already purchased
-    const userOrders = await Order.find({ user: req.user._id }, "orderItems");
-    const alreadyOwned = userOrders.some((order) =>
-      order.orderItems.some((item) => item.product.toString() === productId)
-    );
+    const alreadyOwned = await Order.exists({
+      user: req.user._id,
+      \"orderItems.product\": productId,
+    });
     if (alreadyOwned) {
       return res.status(400).json({ success: false, message: "You already own this product" });
     }

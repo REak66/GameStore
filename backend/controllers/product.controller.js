@@ -47,7 +47,8 @@ exports.getProducts = async (req, res) => {
       .populate("category", "name")
       .sort(sortQuery)
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     res.json({
       success: true,
@@ -65,7 +66,8 @@ exports.getProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate("category", "name")
-      .populate("reviews.user", "name avatar");
+      .populate("reviews.user", "name avatar")
+      .lean();
     if (!product)
       return res
         .status(404)
@@ -74,15 +76,13 @@ exports.getProduct = async (req, res) => {
     let alreadyPurchased = false;
     let purchasedOrderId = null;
     if (req.user) {
-      const userOrders = await Order.find({ user: req.user._id }, "orderItems _id");
-      outer: for (const order of userOrders) {
-        for (const item of order.orderItems) {
-          if (item.product.toString() === product._id.toString()) {
-            alreadyPurchased = true;
-            purchasedOrderId = order._id;
-            break outer;
-          }
-        }
+      const purchaseOrder = await Order.findOne(
+        { user: req.user._id, "orderItems.product": product._id },
+        "_id",
+      ).lean();
+      if (purchaseOrder) {
+        alreadyPurchased = true;
+        purchasedOrderId = purchaseOrder._id;
       }
     }
 
@@ -182,7 +182,8 @@ exports.getFeaturedProducts = async (req, res) => {
   try {
     const products = await Product.find({ featured: true, status: "active" })
       .populate("category", "name")
-      .limit(8);
+      .limit(8)
+      .lean();
     res.json({ success: true, products });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

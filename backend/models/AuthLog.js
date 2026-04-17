@@ -17,4 +17,9 @@ const authLogSchema = new mongoose.Schema(
   { bufferCommands: false },
 );
 
+authLogSchema.index({ createdAt: -1 });
+authLogSchema.index({ user: 1, createdAt: -1 });
+authLogSchema.index({ action: 1, success: 1 });
+authLogSchema.index({ email: 1 });
+
 module.exports = mongoose.model("AuthLog", authLogSchema);

@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ProductFilter } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private apiUrl = `${environment.apiUrl}/api/products`;
+  private featuredCache$: Observable<any> | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getProducts(filter: ProductFilter = {}): Observable<any> {
     let params = new HttpParams();
@@ -25,7 +26,12 @@ export class ProductService {
   }
 
   getFeaturedProducts(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/featured`);
+    if (!this.featuredCache$) {
+      this.featuredCache$ = this.http.get(`${this.apiUrl}/featured`).pipe(
+        shareReplay({ bufferSize: 1, refCount: true })
+      );
+    }
+    return this.featuredCache$;
   }
 
   createProduct(data: FormData): Observable<any> {

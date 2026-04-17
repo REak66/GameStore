@@ -53,7 +53,8 @@ exports.getAuthLogs = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skipIndex)
       .limit(Number(limit))
-      .populate("user", "name email role");
+      .populate("user", "name email role")
+      .lean();
 
     res.json({
       success: true,
@@ -104,7 +105,8 @@ exports.getDashboardStats = async (req, res) => {
     const recentOrders = await Order.find()
       .populate("user", "name email")
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(10)
+      .lean();
 
     const monthlySales = await Order.aggregate([
       {
@@ -144,7 +146,7 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const users = await User.find().sort({ createdAt: -1 }).lean();
     res.json({ success: true, users });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

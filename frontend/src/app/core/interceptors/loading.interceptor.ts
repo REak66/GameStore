@@ -1,9 +1,7 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';
-import { finalize, delay, Observable } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 import { LoadingService } from '../services/loading.service';
-
-const MIN_SPINNER_DELAY_MS = 250;
 
 export const loadingInterceptor: HttpInterceptorFn = (
   req: HttpRequest<any>,
@@ -12,7 +10,6 @@ export const loadingInterceptor: HttpInterceptorFn = (
   const loadingService = inject(LoadingService);
   loadingService.show();
   return next(req).pipe(
-    delay(MIN_SPINNER_DELAY_MS),
     finalize(() => loadingService.hide())
   );
 };

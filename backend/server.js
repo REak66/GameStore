@@ -1,12 +1,16 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const compression = require("compression");
+const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 
+app.use(helmet());
+app.use(compression());
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:4200",
@@ -15,8 +19,13 @@ app.use(
 );
 
 app.use(express.json());
-app.use(morgan("dev"));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  maxAge: "7d",
+  immutable: true,
+}));
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/products", require("./routes/product.routes"));

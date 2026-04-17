@@ -11,7 +11,7 @@ const { streamDriveFile } = require("../services/drive.service");
  * The raw Drive file ID must never be exposed via the API.
  */
 const sanitizeOrder = (order) => {
-  const obj = order.toObject ? order.toObject() : { ...order };
+  const obj = order.toObject ? order.toObject() : (typeof order === 'object' ? { ...order } : order);
   if (Array.isArray(obj.orderItems)) {
     obj.orderItems = obj.orderItems.map(({ downloadLink, ...rest }) => rest);
   }
@@ -31,18 +31,18 @@ exports.createOrder = async (req, res) => {
     }
 
     // Prevent duplicate purchase: check if user already bought any product in cart
-    const userOrders = await Order.find({ user: req.user._id });
-    const purchasedProductIds = new Set();
-    userOrders.forEach(order => {
-      order.orderItems.forEach(item => purchasedProductIds.add(item.product.toString()));
-    });
-    for (const item of cart.items) {
-      if (purchasedProductIds.has(item.product._id.toString())) {
-        return res.status(400).json({
-          success: false,
-          message: `You have already purchased: ${item.product.name}`,
-        });
-      }
+    const cartProductIds = cart.items.map((item) => item.product._id);
+    const existingPurchase = await Order.findOne(
+      { user: req.user._id, "orderItems.product": { $in: cartProductIds } },
+      "orderItems",
+    ).lean();
+    if (existingPurchase) {
+      const purchasedIds = new Set(existingPurchase.orderItems.map((i) => i.product.toString()));
+      const dupItem = cart.items.find((item) => purchasedIds.has(item.product._id.toString()));
+      return res.status(400).json({
+        success: false,
+        message: `You have already purchased: ${dupItem?.product.name || "a product"}`,
+      });
     }
 
     const orderItems = cart.items.map((item) => ({
@@ -66,12 +66,11 @@ exports.createOrder = async (req, res) => {
       totalPrice,
     });
 
-    // Increment downloadCount after order is created
-    for (const item of cart.items) {
-      await Product.findByIdAndUpdate(item.product._id, {
-        $inc: { downloadCount: 1 },
-      });
-    }
+    // Increment downloadCount after order is created (batch update)
+    await Product.updateMany(
+      { _id: { $in: cart.items.map((item) => item.product._id) } },
+      { $inc: { downloadCount: 1 } },
+    );
 
     await Cart.findOneAndDelete({ user: req.user._id });
 
@@ -85,7 +84,8 @@ exports.getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.user._id })
       .sort({ createdAt: -1 })
-      .populate("orderItems.product", "name image");
+      .populate("orderItems.product", "name image")
+      .lean();
     res.json({ success: true, orders: orders.map(sanitizeOrder) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -97,7 +97,8 @@ exports.getOrder = async (req, res) => {
     // Explicitly exclude downloadLink from the populated Product fields
     const order = await Order.findById(req.params.id)
       .populate("user", "name email")
-      .populate("orderItems.product", "name image");
+      .populate("orderItems.product", "name image")
+      .lean();
     if (!order)
       return res
         .status(404)
@@ -179,7 +180,8 @@ exports.getAllOrders = async (req, res) => {
       .populate("user", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
     res.json({
       success: true,
       orders: orders.map(sanitizeOrder),
