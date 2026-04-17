@@ -58,7 +58,7 @@ import { environment } from '../../../../environments/environment';
                   <!-- Download button: show if paid and downloadLink exists -->
                   <button
                     *ngIf="
-                      order.status === 'paid' && hasDownloadLink(item)
+                      order.isPaid && hasDownloadLink(item)
                     "
                     (click)="downloadItem(item)"
                     [disabled]="downloadingItemId === getProductId(item)"
@@ -96,7 +96,7 @@ import { environment } from '../../../../environments/environment';
               ><span>\${{ order.totalPrice | number: '1.2-2' }}</span>
             </div>
             <button
-              *ngIf="order.status === 'paid'"
+              *ngIf="order.isPaid"
               (click)="downloadReceiptPDF()"
               class="btn-primary-download"
             >
@@ -318,9 +318,11 @@ import { environment } from '../../../../environments/environment';
         padding: 6px 16px;
         background: linear-gradient(90deg, #4f6ef7, #8b5cf6);
         color: #fff;
+        border: none;
         border-radius: 6px;
         font-size: 0.92rem;
         font-weight: 600;
+        cursor: pointer;
         text-decoration: none;
         transition: background 0.2s;
         box-shadow: 0 2px 8px rgba(79, 110, 247, 0.08);
