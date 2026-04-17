@@ -1,23 +1,11 @@
 const { google } = require("googleapis");
 
 const SCOPES = ["https://www.googleapis.com/auth/drive.readonly"];
-
-/**
- * Accept either a bare file ID or a full Google Drive URL and return just the ID.
- * e.g. "https://drive.google.com/file/d/FILE_ID/view?usp=drive_link" → "FILE_ID"
- */
 function extractFileId(fileIdOrUrl) {
   if (!fileIdOrUrl) return fileIdOrUrl;
   const match = fileIdOrUrl.match(/\/file\/d\/([^/?#]+)/);
   return match ? match[1] : fileIdOrUrl;
 }
-
-/**
- * Robustly parse the private key from the environment variable.
- * Handles: surrounding quotes added by Vercel/env stores, escaped \\n sequences,
- * Windows CRLF line endings, and extra leading/trailing whitespace — all of which
- * cause the OpenSSL 3 "DECODER routines::unsupported" error on Node.js 18+.
- */
 function getPrivateKey() {
   let key = process.env.GOOGLE_PRIVATE_KEY || "";
   // Strip surrounding double-quotes that some env var UIs wrap around values

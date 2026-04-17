@@ -1,11 +1,5 @@
 const path = require("path");
 const { createRequire } = require("module");
-
-// backend/server.js and all its models resolve "mongoose" from the backend
-// directory. We must use that SAME singleton — otherwise connectDB() and the
-// model queries operate on two completely different Mongoose instances (one
-// connected, one not), causing the "buffering timed out / bufferCommands=false"
-// errors. createRequire lets us resolve a module as if we were inside server.js.
 const backendRequire = createRequire(
   path.resolve(__dirname, "../backend/server.js")
 );
@@ -25,8 +19,6 @@ const connectDB = async () => {
   if (state === 1) return; // already connected
 
   if (state === 2) {
-    // Another invocation is already connecting — wait for it instead of
-    // disconnecting it (which causes "readyState=2" errors).
     await new Promise((resolve, reject) => {
       mongoose.connection.once("connected", resolve);
       mongoose.connection.once("error", reject);

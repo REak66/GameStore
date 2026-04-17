@@ -1,13 +1,4 @@
 const nodemailer = require('nodemailer');
-
-/**
- * Creates a Nodemailer transporter using Gmail OAuth2.
- * Requires the following environment variables:
- *   GMAIL_CLIENT_ID      – OAuth2 client ID
- *   GMAIL_CLIENT_SECRET  – OAuth2 client secret
- *   GMAIL_REFRESH_TOKEN  – OAuth2 refresh token
- *   GMAIL_FROM           – Sender address, e.g. "GameShop <you@gmail.com>"
- */
 const createTransporter = () =>
   nodemailer.createTransport({
     service: 'gmail',
