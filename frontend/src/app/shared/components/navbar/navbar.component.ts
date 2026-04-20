@@ -187,7 +187,7 @@ import { environment } from '../../../../environments/environment';
                 *ngIf="isAdmin"
                 (click)="closeMenu()"
               >
-                <i class="fas fa-gear-complex"></i>
+                <i class="fas fa-gauge-high"></i>
                 Admin Dashboard
               </a>
               <div class="dd-divider"></div>
@@ -852,7 +852,7 @@ import { environment } from '../../../../environments/environment';
         .avatar {
           width: 36px;
           height: 36px;
-          border-radius: 12px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--accent), var(--purple));
           color: white;
           font-weight: 800;
@@ -1656,7 +1656,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private router: Router,
     private elRef: ElementRef,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.cartService.cart$.subscribe((cart) => {
