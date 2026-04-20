@@ -19,6 +19,10 @@ import {
 } from '../../../shared/components/select/select.component';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { SpinComponent } from '../../../shared/components/spin/spin.component';
+import {
+  DateRangePickerComponent,
+  DateRange,
+} from '../../../shared/components/date-range-picker/date-range-picker.component';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -32,6 +36,7 @@ import * as XLSX from 'xlsx';
     FormsModule,
     SelectComponent,
     SpinComponent,
+    DateRangePickerComponent,
   ],
   animations: [
     trigger('listAnimation', [
@@ -93,30 +98,13 @@ import * as XLSX from 'xlsx';
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <div class="date-range">
-          <input
-            type="date"
-            class="date-input"
-            [(ngModel)]="dateFrom"
-            (change)="loadOrders()"
-            placeholder="From"
-          />
-          <span class="date-sep">→</span>
-          <input
-            type="date"
-            class="date-input"
-            [(ngModel)]="dateTo"
-            (change)="loadOrders()"
-            placeholder="To"
-          />
-          <button
-            *ngIf="dateFrom || dateTo"
-            class="btn-clear-date"
-            (click)="clearDates()"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
+        <app-date-range-picker
+          [ngModel]="dateRangeValue"
+          (rangeChange)="onDateRangeChange($event)"
+          name="dateRange"
+          placeholder="Select date range"
+          [clearable]="true"
+        ></app-date-range-picker>
         <app-select
           [(ngModel)]="filterStatus"
           [options]="filterStatusOptions"
@@ -403,54 +391,8 @@ import * as XLSX from 'xlsx';
       .search-clear:hover {
         color: #e8eaf6;
       }
-      .date-range {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .date-input {
-        padding: 9px 10px;
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #e8eaf6;
-        font-size: 0.85rem;
-        outline: none;
-        transition: border-color 0.25s;
-      }
-      .date-input {
-        padding: 9px 10px;
-        border: 2px solid var(--border);
-        border-radius: 8px;
-        background: var(--bg-secondary);
-        color: var(--text-white);
-        font-size: 0.85rem;
-        outline: none;
-        transition: border-color 0.25s;
-      }
-      .date-input:focus {
-        border-color: var(--accent);
-      }
-      .date-input::-webkit-calendar-picker-indicator {
-        filter: invert(1);
-        opacity: 0.5;
-        cursor: pointer;
-      }
-      .date-sep {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-      }
-      .btn-clear-date {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        cursor: pointer;
-        padding: 4px 8px;
-        font-size: 0.9rem;
-        transition: color 0.2s;
-      }
-      .btn-clear-date:hover {
-        color: var(--text-white);
+      .toolbar app-date-range-picker {
+        min-width: 240px;
       }
       .section-card {
         background: var(--bg-card);
@@ -781,12 +723,8 @@ import * as XLSX from 'xlsx';
           min-width: unset;
           width: 100%;
         }
-        .date-range {
-          flex-wrap: wrap;
-        }
-        .date-input {
-          flex: 1;
-          min-width: 120px;
+        .toolbar app-date-range-picker {
+          width: 100%;
         }
         .section-card {
           padding: 16px;
@@ -867,6 +805,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   searchText = '';
   dateFrom = '';
   dateTo = '';
+  dateRangeValue: DateRange = { from: '', to: '' };
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
@@ -931,7 +870,7 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   constructor(
     private orderService: OrderService,
     private notification: NotificationService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.searchSubject
@@ -961,6 +900,15 @@ export class ManageOrdersComponent implements OnInit, OnDestroy {
   clearDates() {
     this.dateFrom = '';
     this.dateTo = '';
+    this.dateRangeValue = { from: '', to: '' };
+    this.currentPage = 1;
+    this.loadOrders();
+  }
+
+  onDateRangeChange(range: DateRange) {
+    this.dateRangeValue = range;
+    this.dateFrom = range.from;
+    this.dateTo = range.to;
     this.currentPage = 1;
     this.loadOrders();
   }

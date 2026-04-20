@@ -15,11 +15,15 @@ import {
   SelectOption,
 } from '../../../shared/components/select/select.component';
 import { SpinComponent } from '../../../shared/components/spin/spin.component';
+import {
+  DateRangePickerComponent,
+  DateRange,
+} from '../../../shared/components/date-range-picker/date-range-picker.component';
 
 @Component({
   selector: 'app-auth-logs',
   standalone: true,
-  imports: [CommonModule, FormsModule, SelectComponent, SpinComponent],
+  imports: [CommonModule, FormsModule, SelectComponent, SpinComponent, DateRangePickerComponent],
   encapsulation: ViewEncapsulation.None,
   animations: [
     trigger('listAnimation', [
@@ -65,17 +69,13 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
             placeholder="All Status"
             [clearable]="true"
           ></app-select>
-          <div class="date-range-group">
-            <div class="date-field">
-              <label class="date-label">From</label>
-              <input type="date" [(ngModel)]="filters.from" name="from" />
-            </div>
-            <span class="date-sep">—</span>
-            <div class="date-field">
-              <label class="date-label">To</label>
-              <input type="date" [(ngModel)]="filters.to" name="to" />
-            </div>
-          </div>
+          <app-date-range-picker
+            [ngModel]="dateRange"
+            (rangeChange)="onDateRangeChange($event)"
+            name="dateRange"
+            placeholder="Select date range"
+            [clearable]="true"
+          ></app-date-range-picker>
           <div class="btn-row">
             <button type="submit">Filter</button>
             <button type="button" (click)="resetFilters()">Reset</button>
@@ -307,34 +307,9 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         align-items: center;
       }
 
-      /* ── Date range group ── */
-      .date-range-group {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-      }
-      .date-field {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .date-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        padding-left: 2px;
-      }
-      .date-range-group input[type='date'] {
-        width: 140px;
-      }
-      .date-sep {
-        color: var(--text-muted);
-        font-size: 1rem;
-        margin-top: 18px;
-        flex-shrink: 0;
+      /* ── Date range picker ── */
+      .filter-form app-date-range-picker {
+        min-width: 240px;
       }
 
       .table-wrapper {
@@ -504,15 +479,9 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         .filter-form app-select {
           width: 100%;
         }
-        .date-range-group {
+        .filter-form app-date-range-picker {
           grid-column: 1 / -1;
           width: 100%;
-          justify-content: flex-start;
-        }
-        .date-range-group input[type='date'] {
-          flex: 1;
-          width: auto;
-          min-width: 0;
         }
         .filter-form button[type='submit'],
         .filter-form button[type='button'] {
@@ -573,17 +542,9 @@ import { SpinComponent } from '../../../shared/components/spin/spin.component';
         .filter-form app-select {
           width: 100%;
         }
-        .date-range-group {
+        .filter-form app-date-range-picker {
           grid-column: 1;
-          flex-direction: row;
           width: 100%;
-        }
-        .date-range-group input[type='date'] {
-          flex: 1;
-          width: auto;
-          min-width: 0;
-          font-size: 0.82rem;
-          padding: 8px 6px;
         }
         .filter-form .btn-row {
           display: flex;
@@ -652,6 +613,7 @@ export class AuthLogsComponent implements OnInit {
     from: '',
     to: '',
   };
+  dateRange: DateRange = { from: '', to: '' };
   pagination = {
     page: 1,
     limit: 10,
@@ -755,8 +717,15 @@ export class AuthLogsComponent implements OnInit {
 
   resetFilters() {
     this.filters = { search: '', action: null, status: null, from: '', to: '' };
+    this.dateRange = { from: '', to: '' };
     this.pagination.page = 1;
     this.fetchLogs();
+  }
+
+  onDateRangeChange(range: DateRange) {
+    this.dateRange = range;
+    this.filters.from = range.from;
+    this.filters.to = range.to;
   }
 
   changePage(newPage: number) {
