@@ -13,7 +13,7 @@ import { SkeletonComponent } from '../../../shared/components/skeleton/skeleton.
 import { Product, Review } from '../../../core/models';
 import { environment } from '../../../../environments/environment';
 import { Observable, of } from 'rxjs';
-import { switchMap, catchError, tap } from 'rxjs/operators';
+import { switchMap, catchError, tap, startWith } from 'rxjs/operators';
 
 @Component({
   selector: 'app-product-detail',
@@ -202,16 +202,16 @@ export class ProductDetailComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private msgService: NotificationService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.product$ = this.route.params.pipe(
       switchMap((params) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return this.productService.getProduct(params['id']).pipe(
-          tap(() => {}),
           switchMap((res) => of({ product: res.product, alreadyPurchased: !!res.alreadyPurchased, purchasedOrderId: res.purchasedOrderId || null, loading: false })),
-          catchError(() => of({ product: null, alreadyPurchased: false, purchasedOrderId: null, loading: false }))
+          catchError(() => of({ product: null, alreadyPurchased: false, purchasedOrderId: null, loading: false })),
+          startWith({ product: null, alreadyPurchased: false, purchasedOrderId: null, loading: true })
         );
       })
     );
