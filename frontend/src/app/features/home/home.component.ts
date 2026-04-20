@@ -106,10 +106,6 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
                 </button>
               </div>
             </div>
-            <!-- Live indicator -->
-            <div class="hero-live">
-              <span class="live-dot"></span> Live Deal
-            </div>
           </div>
         </div>
         <!-- Dot indicators (mobile) -->
@@ -1910,7 +1906,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private orderService: OrderService,
     private router: Router,
     private msgService: NotificationService,
-  ) {}
+  ) { }
 
   ngOnInit() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1940,7 +1936,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           .sort((a, b) => b.rating - a.rating || b.numReviews - a.numReviews)
           .slice(0, 5);
       },
-      error: () => {},
+      error: () => { },
     });
 
     this.categoryService.getCategories().subscribe({
@@ -2006,10 +2002,10 @@ export class HomeComponent implements OnInit, OnDestroy {
                 ? 100
                 : 0
               : Math.round(
-                  ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100,
-                );
+                ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100,
+              );
         },
-        error: () => {},
+        error: () => { },
       });
     }
   }
@@ -2069,10 +2065,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.activeCategory === 'all'
         ? [...this.allProducts]
         : this.allProducts.filter((p) => {
-            const catId =
-              typeof p.category === 'string' ? p.category : p.category?._id;
-            return catId === this.activeCategory;
-          });
+          const catId =
+            typeof p.category === 'string' ? p.category : p.category?._id;
+          return catId === this.activeCategory;
+        });
 
     switch (this.sortOrder) {
       case 'price-asc':
