@@ -728,3 +728,28 @@
   &:hover { background: var(--accent-dark); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+
+/* AI game recommendation links */
+::ng-deep .ai-game-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(79, 110, 247, 0.12);
+  border: 1px solid rgba(79, 110, 247, 0.35);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+
+  i { font-size: 0.75rem; }
+
+  &:hover {
+    background: rgba(79, 110, 247, 0.22);
+    border-color: rgba(79, 110, 247, 0.6);
+    color: var(--accent);
+  }
+}

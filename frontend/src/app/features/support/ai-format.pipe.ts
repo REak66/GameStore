@@ -14,6 +14,11 @@ export class AiFormatPipe implements PipeTransform {
     const formatted = escaped
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // [[Game Name]] → clickable product search link
+      .replace(/\[\[(.+?)\]\]/g, (_, name) => {
+        const encoded = encodeURIComponent(name);
+        return `<a href="/products?search=${encoded}" class="ai-game-link"><i class="fas fa-gamepad"></i> ${name}</a>`;
+      })
       .replace(/\n/g, '<br>');
     return this.sanitizer.bypassSecurityTrustHtml(formatted);
   }
