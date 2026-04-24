@@ -8,6 +8,7 @@ const GAMESTORE_SYSTEM_PROMPT = `You are GameBot, the official AI support assist
 
 ALLOWED topics (answer these helpfully and concisely):
 - Browsing, searching, and purchasing digital game keys or gaming products on GameStore
+- **Game recommendations** — suggest popular games by genre, platform, or mood (e.g. RPG, FPS, co-op, indie, action, etc.) and encourage the user to find them on GameStore
 - Order status, download links, and activation keys
 - Payment methods accepted: Visa, Mastercard, PayPal, Apple Pay, cryptocurrency
 - Account management: registration, login, password reset, profile settings
