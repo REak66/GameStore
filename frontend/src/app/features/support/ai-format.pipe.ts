@@ -17,7 +17,7 @@ export class AiFormatPipe implements PipeTransform {
       // [[Game Name]] → clickable product search link
       .replace(/\[\[(.+?)\]\]/g, (_, name) => {
         const encoded = encodeURIComponent(name);
-        return `<a href="/products?search=${encoded}" class="ai-game-link"><i class="fas fa-gamepad"></i> ${name}</a>`;
+        return `<a href="/products?search=${encoded}" class="ai-game-link"><i class="fas fa-gamepad"></i>${name} <i class="fas fa-arrow-right ai-arrow"></i></a>`;
       })
       .replace(/\n/g, '<br>');
     return this.sanitizer.bypassSecurityTrustHtml(formatted);
