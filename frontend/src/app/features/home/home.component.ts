@@ -437,11 +437,16 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
             class="empty-state"
             *ngIf="!loadingProducts && filteredProducts.length === 0"
           >
-            <div class="empty-icon"><i class="fas fa-gamepad"></i></div>
-            <p class="empty-title">No games found</p>
+            <div class="empty-icon">
+              <i class="fas fa-exclamation-triangle" *ngIf="productsApiError" style="color:var(--accent-red,#e74c3c)"></i>
+              <i class="fas fa-gamepad" *ngIf="!productsApiError"></i>
+            </div>
+            <p class="empty-title">{{ productsApiError ? 'Could not load games' : 'No games found' }}</p>
             <p class="empty-text">
               {{
-                activeCategory === 'all'
+                productsApiError
+                  ? 'There was a problem connecting to the server. Please try again later.'
+                  : activeCategory === 'all'
                   ? 'Check back soon for new titles!'
                   : 'No games in this category yet.'
               }}
@@ -450,11 +455,11 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
               <button
                 class="btn-pill"
                 (click)="filterBy('all')"
-                *ngIf="activeCategory !== 'all'"
+                *ngIf="activeCategory !== 'all' && !productsApiError"
               >
                 <i class="fas fa-th-large"></i> View All Games
               </button>
-              <a routerLink="/products" class="btn-pill btn-pill-outline">
+              <a routerLink="/products" class="btn-pill btn-pill-outline" *ngIf="!productsApiError">
                 <i class="fas fa-search"></i> Browse Store
               </a>
             </div>
@@ -1877,6 +1882,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   loadingProducts = true;
   loadingCategories = true;
+  productsApiError = false;
   purchasedProductIds: Set<string> = new Set();
 
   // Hero carousel
@@ -1949,6 +1955,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.loadingProducts = false;
+        this.productsApiError = true;
       },
     });
 
@@ -1966,7 +1973,9 @@ export class HomeComponent implements OnInit, OnDestroy {
           .sort((a, b) => b.rating - a.rating || b.numReviews - a.numReviews)
           .slice(0, 5);
       },
-      error: () => { },
+      error: () => {
+        this.productsApiError = true;
+      },
     });
 
     this.categoryService.getCategories().subscribe({
