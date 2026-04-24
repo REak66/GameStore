@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AnimateOnScroll } from 'primeng/animateonscroll';
 import { ProductService } from '../../core/services/product.service';
 import { CategoryService } from '../../core/services/category.service';
 import { CartService } from '../../core/services/cart.service';
@@ -30,6 +31,7 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     SkeletonComponent,
     SelectComponent,
     FormsModule,
+    AnimateOnScroll,
   ],
   template: `
     <!-- ══ HERO BANNER (full-width above layout) ══ -->
@@ -37,7 +39,13 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
       class="hero-banner"
       *ngIf="heroProducts.length > 0 || loadingProducts"
     >
-      <div class="hero-skeleton" *ngIf="loadingProducts"></div>
+      <app-skeleton
+        *ngIf="loadingProducts"
+        type="rect"
+        height="100%"
+        radius="0"
+        [active]="true"
+      ></app-skeleton>
       <ng-container *ngIf="!loadingProducts && heroProducts.length > 0">
         <!-- Slides -->
         <div class="hero-slides">
@@ -145,6 +153,9 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     <section
       class="arrivals-section"
       *ngIf="loadingProducts || newArrivals.length > 0"
+      pAnimateOnScroll
+      enterClass="animate-fadeinup"
+      leaveClass="animate-fadeout"
     >
       <div class="arrivals-inner">
         <div class="section-header">
@@ -286,6 +297,9 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         <div
           class="stats-bar"
           *ngIf="!loadingProducts && allProducts.length > 0"
+          pAnimateOnScroll
+          enterClass="animate-fadein"
+          leaveClass="animate-fadeout"
         >
           <div class="stat-chip">
             <span class="stat-icon stat-icon-blue"
@@ -326,8 +340,28 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         </div>
 
         <!-- ── Category Filter Pills ── -->
-        <div class="filter-pills-wrap" *ngIf="!loadingCategories">
+        <div class="filter-pills-wrap" *ngIf="loadingCategories">
           <div class="filter-pills">
+            <app-skeleton
+              type="button"
+              [count]="7"
+              width="96px"
+              height="38px"
+              [active]="true"
+            ></app-skeleton>
+          </div>
+        </div>
+
+        <div
+          class="filter-pills-wrap"
+          *ngIf="!loadingCategories"
+          pAnimateOnScroll
+          enterClass="animate-fadeindown"
+          leaveClass="animate-fadeout"
+          (mouseenter)="pausePillScroll()"
+          (mouseleave)="resumePillScroll()"
+        >
+          <div class="filter-pills" #filterPills>
             <button
               class="pill"
               [class.active]="activeCategory === 'all'"
@@ -347,7 +381,12 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
         </div>
 
         <!-- ── Games Grid ── -->
-        <section class="games-section">
+        <section
+          class="games-section"
+          pAnimateOnScroll
+          enterClass="animate-fadeinup"
+          leaveClass="animate-fadeout"
+        >
           <div class="section-header">
             <div class="sh-left">
               <span class="sh-accent"></span>
@@ -425,7 +464,12 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
       <!-- /center-feed -->
 
       <!-- ════ RIGHT PANEL ════ -->
-      <aside class="right-panel">
+      <aside
+        class="right-panel"
+        pAnimateOnScroll
+        enterClass="animate-fadeinright"
+        leaveClass="animate-fadeout"
+      >
         <!-- Library / Balance Card -->
         <div class="rp-card finance-card">
           <div class="finance-header">
@@ -702,27 +746,6 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
         @media (max-width: 380px) {
           height: 360px;
-        }
-      }
-
-      .hero-skeleton {
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          var(--bg-card) 25%,
-          var(--bg-card-hover) 50%,
-          var(--bg-card) 75%
-        );
-        background-size: 200% 100%;
-        animation: shimmer 1.4s infinite;
-      }
-
-      @keyframes shimmer {
-        0% {
-          background-position: 200% 0;
-        }
-        100% {
-          background-position: -200% 0;
         }
       }
 
@@ -1843,6 +1866,8 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
   ],
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  @ViewChild('filterPills') filterPillsRef!: ElementRef<HTMLElement>;
+
   featuredProducts: Product[] = [];
   allProducts: Product[] = [];
   filteredProducts: Product[] = [];
@@ -1861,6 +1886,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   private heroTimer: any;
   private progressTimer: any;
   private readonly SLIDE_DURATION = 5000;
+
+  // Pill auto-scroll
+  private pillScrollInterval: any;
+  private pillScrollDirection = 1;
+  private pillScrollPaused = false;
 
   // Total Spent
   totalSpentWhole = '0';
@@ -1943,6 +1973,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.categories = (res.categories || []).slice(0, 8);
         this.loadingCategories = false;
+        setTimeout(() => this.startPillAutoScroll(), 400);
       },
       error: () => {
         this.loadingCategories = false;
@@ -2012,6 +2043,39 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopCarousel();
+    this.stopPillAutoScroll();
+  }
+
+  // ── Pill auto-scroll ──
+  private startPillAutoScroll() {
+    this.stopPillAutoScroll();
+    this.pillScrollDirection = 1;
+    this.pillScrollInterval = setInterval(() => {
+      if (this.pillScrollPaused) return;
+      const el = this.filterPillsRef?.nativeElement;
+      if (!el) return;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 0) return;
+      if (this.pillScrollDirection === 1) {
+        el.scrollLeft += 1;
+        if (el.scrollLeft >= maxScroll) this.pillScrollDirection = -1;
+      } else {
+        el.scrollLeft -= 1;
+        if (el.scrollLeft <= 0) this.pillScrollDirection = 1;
+      }
+    }, 16);
+  }
+
+  private stopPillAutoScroll() {
+    clearInterval(this.pillScrollInterval);
+  }
+
+  pausePillScroll() {
+    this.pillScrollPaused = true;
+  }
+
+  resumePillScroll() {
+    this.pillScrollPaused = false;
   }
 
   // ── Carousel ──

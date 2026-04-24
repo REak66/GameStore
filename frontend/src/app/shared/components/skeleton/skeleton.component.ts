@@ -61,7 +61,7 @@ export type SkeletonType =
           class="skeleton-el skeleton-block"
           [style.width]="width || '100%'"
           [style.height]="height || '120px'"
-          [style.border-radius]="round ? '50%' : '8px'"
+          [style.border-radius]="radius ?? (round ? '50%' : '8px')"
         ></span>
 
         <!-- Default: text lines -->
@@ -375,6 +375,8 @@ export class SkeletonComponent {
   @Input() size = '40px';
   /** Round corners for image/rect */
   @Input() round = false;
+  /** Explicit border-radius override (for rect/image, overrides 'round') */
+  @Input() radius?: string;
 
   get countArray(): number[] {
     return Array(this.count).fill(0);

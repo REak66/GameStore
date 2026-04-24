@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, filter, take, map, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
@@ -7,6 +7,7 @@ import { User } from '../models';
 
 const STORAGE_KEY_TOKEN = 'token';
 const STORAGE_KEY_LOGIN_TIME = 'loginTime';
+const STORAGE_KEY_USER = 'user';
 const AUTO_LOGOUT_MS = 60 * 60 * 1000; // Auto sign-out
 
 @Injectable({ providedIn: 'root' })
@@ -24,14 +25,27 @@ export class AuthService {
         next: (res: any) => {
           if (res.success) {
             this.currentUserSubject.next(res.user);
+            this.saveUserToStorage(res.user);
             this.scheduleAutoLogout();
           } else {
             this.clearAuth();
           }
           this.initializedSubject.next(true);
         },
-        error: () => {
-          this.clearAuth();
+        error: (err: HttpErrorResponse) => {
+          if (err.status === 401) {
+            this.clearAuth();
+          } else {
+            // Network error or server error — restore from cache so the user
+            // is not kicked out just because the backend was temporarily unreachable.
+            const cached = localStorage.getItem(STORAGE_KEY_USER);
+            if (cached) {
+              this.currentUserSubject.next(JSON.parse(cached));
+              this.scheduleAutoLogout();
+            } else {
+              this.clearAuth();
+            }
+          }
           this.initializedSubject.next(true);
         },
       });
@@ -82,6 +96,7 @@ export class AuthService {
     this.clearAutoLogoutTimer();
     localStorage.removeItem(STORAGE_KEY_TOKEN);
     localStorage.removeItem(STORAGE_KEY_LOGIN_TIME);
+    localStorage.removeItem(STORAGE_KEY_USER);
     this.currentUserSubject.next(null);
     this.router.navigate(['/auth/login']);
   }
@@ -115,6 +130,7 @@ export class AuthService {
         if (res.success) {
           const updated = { ...this.currentUser, ...res.user };
           this.currentUserSubject.next(updated);
+          this.saveUserToStorage(updated);
         }
       }),
     );
@@ -133,8 +149,9 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/profile/avatar`, formData).pipe(
       tap((res: any) => {
         if (res.success) {
-          const updated = { ...this.currentUser, avatar: res.avatar };
-          this.currentUserSubject.next(updated as User);
+          const updated = { ...this.currentUser, avatar: res.avatar } as User;
+          this.currentUserSubject.next(updated);
+          this.saveUserToStorage(updated);
         }
       }),
     );
@@ -154,7 +171,12 @@ export class AuthService {
     localStorage.setItem(STORAGE_KEY_TOKEN, res.token);
     localStorage.setItem(STORAGE_KEY_LOGIN_TIME, String(Date.now()));
     this.currentUserSubject.next(res.user);
+    this.saveUserToStorage(res.user);
     this.initializedSubject.next(true);
     this.scheduleAutoLogout();
+  }
+
+  private saveUserToStorage(user: any): void {
+    localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
   }
 }
