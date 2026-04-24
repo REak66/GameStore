@@ -1,9 +1,11 @@
-import { Component, OnInit, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, AfterViewChecked, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 import { NotificationService } from '../../shared/services/notification.service';
+import { AuthService, STORAGE_KEY_AI_CHAT_PREFIX } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 import { AiFormatPipe } from './ai-format.pipe';
 
@@ -28,7 +30,7 @@ interface ChatMessage {
   templateUrl: './support.component.html',
   styleUrl: './support.component.scss',
 })
-export class SupportComponent implements OnInit, AfterViewChecked {
+export class SupportComponent implements OnInit, AfterViewChecked, OnDestroy {
   @ViewChild('chatWindow') private chatWindow!: ElementRef;
 
   activeTab: SupportTab = 'help-center';
@@ -41,6 +43,8 @@ export class SupportComponent implements OnInit, AfterViewChecked {
   aiInput = '';
   aiLoading = false;
   private aiHistory: { role: 'user' | 'model'; text: string }[] = [];
+  private chatStorageKey: string | null = null;
+  private authSub?: Subscription;
   aiChips = [
     'How do I get my game key?',
     'What is the refund policy?',
@@ -128,6 +132,7 @@ export class SupportComponent implements OnInit, AfterViewChecked {
     private router: Router,
     private notification: NotificationService,
     private http: HttpClient,
+    private auth: AuthService,
   ) { }
 
   ngOnInit(): void {
@@ -137,6 +142,47 @@ export class SupportComponent implements OnInit, AfterViewChecked {
         this.activeTab = tab;
       }
     });
+
+    // Restore chat from localStorage when user is known
+    this.authSub = this.auth.currentUser$.subscribe(user => {
+      if (user?.id) {
+        this.chatStorageKey = `${STORAGE_KEY_AI_CHAT_PREFIX}${user.id}`;
+        this.loadChatFromStorage();
+      } else {
+        // Guest — use a session-scoped key (cleared on tab close via sessionStorage)
+        this.chatStorageKey = null;
+        this.aiMessages = [];
+        this.aiHistory = [];
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.authSub?.unsubscribe();
+  }
+
+  private loadChatFromStorage(): void {
+    if (!this.chatStorageKey) return;
+    try {
+      const raw = localStorage.getItem(this.chatStorageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { messages: { role: string; text: string; time: string }[]; history: { role: string; text: string }[] };
+      this.aiMessages = (saved.messages || []).map(m => ({ ...m, time: new Date(m.time) })) as ChatMessage[];
+      this.aiHistory = (saved.history || []) as { role: 'user' | 'model'; text: string }[];
+      this.shouldScrollChat = true;
+    } catch { /* corrupt data — ignore */ }
+  }
+
+  private saveChatToStorage(): void {
+    if (!this.chatStorageKey) return;
+    try {
+      // Keep last 50 messages to avoid storage bloat
+      const toSave = {
+        messages: this.aiMessages.slice(-50),
+        history: this.aiHistory.slice(-20),
+      };
+      localStorage.setItem(this.chatStorageKey, JSON.stringify(toSave));
+    } catch { /* storage full — ignore */ }
   }
 
   setTab(tab: SupportTab): void {
@@ -221,12 +267,14 @@ export class SupportComponent implements OnInit, AfterViewChecked {
         this.aiMessages.push({ role: 'bot', text: answer, time: new Date() });
         this.aiHistory.push({ role: 'model', text: answer });
         this.shouldScrollChat = true;
+        this.saveChatToStorage();
       },
       error: (err) => {
         this.aiLoading = false;
         const msg = err?.error?.message || 'AI service is temporarily unavailable. Please try again later.';
         this.aiMessages.push({ role: 'bot', text: msg, time: new Date() });
         this.shouldScrollChat = true;
+        this.saveChatToStorage();
       },
     });
   }

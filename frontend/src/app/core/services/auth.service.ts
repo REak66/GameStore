@@ -9,6 +9,7 @@ const STORAGE_KEY_TOKEN = 'token';
 const STORAGE_KEY_LOGIN_TIME = 'loginTime';
 const STORAGE_KEY_USER = 'user';
 const AUTO_LOGOUT_MS = 60 * 60 * 1000; // Auto sign-out
+export const STORAGE_KEY_AI_CHAT_PREFIX = 'gamebot_chat_';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -94,6 +95,11 @@ export class AuthService {
 
   clearAuth(): void {
     this.clearAutoLogoutTimer();
+    // Clear AI chat session for this user
+    const user = this.currentUserSubject.value;
+    if (user?.id) {
+      localStorage.removeItem(`${STORAGE_KEY_AI_CHAT_PREFIX}${user.id}`);
+    }
     localStorage.removeItem(STORAGE_KEY_TOKEN);
     localStorage.removeItem(STORAGE_KEY_LOGIN_TIME);
     localStorage.removeItem(STORAGE_KEY_USER);
